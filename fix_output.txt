@@ -1,0 +1,4 @@
+=== FIX SUMMARY START ===
+FIXED: Dynamic upstream host in Nginx proxy_pass enables SSRF | frontend/nginx.conf:29 | Replaced variable-based proxy_pass with fixed backend host to prevent SSRF.
+FIXED: Nginx proxy_pass location missing internal directive increases SSRF exposure | frontend/nginx.conf:25 | Marked /api location as internal to restrict direct external access to the proxy.
+=== FIX SUMMARY END ===
