@@ -12,14 +12,19 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping("/clients")
 public class ClientController {
 
     private final ClientRepository clientRepo;
+
+    private final ConcurrentHashMap<String, UserRateLimit> userLimits = new ConcurrentHashMap<>();
 
     @Autowired
     private UserRepository userRepo;
@@ -88,6 +93,11 @@ public class ClientController {
 
         User currentUser = getCurrentUser(auth);
 
+        if (!consumeMutationToken(currentUser.getEmail())) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Rate limit exceeded for client modifications");
+        }
+
         client.setOwner(currentUser);
 
         if (clientRepo.existsByEmail(client.getEmail())) {
@@ -108,6 +118,11 @@ public class ClientController {
         }
 
         User currentUser = getCurrentUser(auth);
+
+        if (!consumeMutationToken(currentUser.getEmail())) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Rate limit exceeded for client modifications");
+        }
 
         for (Client c : clients) {
             c.setOwner(currentUser);
@@ -134,6 +149,11 @@ public class ClientController {
         }
 
         User currentUser = getCurrentUser(auth);
+
+        if (!consumeMutationToken(currentUser.getEmail())) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Rate limit exceeded for client modifications");
+        }
 
         Client existing = optional.get();
 
@@ -172,6 +192,11 @@ public class ClientController {
 
         User currentUser = getCurrentUser(auth);
 
+        if (!consumeMutationToken(currentUser.getEmail())) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Rate limit exceeded for client modifications");
+        }
+
         Client client = optional.get();
 
         boolean isAdmin = currentUser.getAuthorities().stream()
@@ -195,6 +220,37 @@ public class ClientController {
             String email = auth.getName();
             return userRepo.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+        }
+    }
+
+    private boolean consumeMutationToken(String userKey) {
+        UserRateLimit limit = userLimits.computeIfAbsent(userKey, k -> new UserRateLimit(Duration.ofMinutes(1), 20));
+        return limit.tryConsume();
+    }
+
+    private static class UserRateLimit {
+        private final Duration window;
+        private final int maxTokens;
+        private final AtomicInteger used = new AtomicInteger(0);
+        private volatile long windowStart;
+
+        UserRateLimit(Duration window, int maxTokens) {
+            this.window = window;
+            this.maxTokens = maxTokens;
+            this.windowStart = System.currentTimeMillis();
+        }
+
+        synchronized boolean tryConsume() {
+            long now = System.currentTimeMillis();
+            if (now - windowStart > window.toMillis()) {
+                used.set(0);
+                windowStart = now;
+            }
+            if (used.get() >= maxTokens) {
+                return false;
+            }
+            used.incrementAndGet();
+            return true;
         }
     }
 }
