@@ -38,18 +38,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
         String requestUri = request.getMethod() + " " + request.getRequestURI();
 
-        logger.info("JWT Filter - Processing request: {}", requestUri);
-        logger.info("JWT Filter - Authorization header: {}", authHeader);
+        logger.debug("JWT Filter - Processing request: {}", requestUri);
+        logger.debug("JWT Filter - Authorization header present: {}", authHeader != null);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.info("JWT Filter - No valid Bearer token found → continuing as anonymous");
+            logger.debug("JWT Filter - No valid Bearer token found → continuing as anonymous");
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = authHeader.substring(7);
-        logger.info("JWT Filter - Token received (first 30 chars): {}",
-                token.length() > 30 ? token.substring(0, 30) + "..." : token);
 
         try {
             // Step 1: Validate token first

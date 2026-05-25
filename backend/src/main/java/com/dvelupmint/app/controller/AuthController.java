@@ -12,8 +12,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/auth")
@@ -22,6 +24,7 @@ public class AuthController {
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final Map<String, LoginAttempt> loginAttempts = new ConcurrentHashMap<>();
 
     // Constructor-based injection of dependencies (repository, encoder, and JWT)
     @Autowired
@@ -46,7 +49,7 @@ public class AuthController {
         user.setEmail(request.getEmail());
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
+        user.setRole("USER");
 
         userRepo.save(user);
         return ResponseEntity.ok("User registered");
@@ -60,6 +63,11 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
         String identifier = credentials.get("identifier");
         String password = credentials.get("password");
+
+        LoginAttempt attempt = loginAttempts.computeIfAbsent(identifier == null ? "" : identifier, k -> new LoginAttempt());
+        if (!attempt.allow()) {
+            return ResponseEntity.status(429).body("Too many login attempts. Please try again later.");
+        }
 
         // Check if identifier is an email (crude check)
         boolean isEmail = identifier.contains("@");
