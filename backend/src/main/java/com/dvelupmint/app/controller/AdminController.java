@@ -104,7 +104,7 @@ public class AdminController {
             return ResponseEntity.ok("✅ User deleted successfully.");
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body("❌ Error deleting user: " + e.getMessage());
+                    .body("❌ Error deleting user.");
         }
     }
 

@@ -59,7 +59,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // Step 2: Extract email/subject
             String email = jwtUtil.extractEmail(token);
-            logger.info("JWT Filter - Extracted email/subject: {}", email);
+            logger.debug("JWT Filter - Token subject extracted");
 
             if (email == null) {
                 logger.warn("JWT Filter - Email/subject is null after extraction");
@@ -69,12 +69,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // Step 3: Check if authentication is already set
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                logger.info("JWT Filter - No existing authentication → loading user");
+                logger.debug("JWT Filter - No existing authentication → loading user");
 
                 // Step 4: Load user details
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-                logger.info("JWT Filter - User loaded successfully: username={}, authorities={}",
-                        userDetails.getUsername(), userDetails.getAuthorities());
 
                 // Step 5: Create authentication token
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
