@@ -11,10 +11,15 @@ RUN mvn clean package -DskipTests
 
 # Runtime stage
 FROM eclipse-temurin:21-jre
+RUN useradd -r -u 1001 appuser \
+  && mkdir -p /app \
+  && chown -R appuser:appuser /app
 
 WORKDIR /app
 
 COPY --from=build /app/target/*.jar app.jar
+
+USER appuser
 
 EXPOSE 8080
 
