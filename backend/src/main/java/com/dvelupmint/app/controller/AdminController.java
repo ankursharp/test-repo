@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/admin")
@@ -32,8 +33,11 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userRepo.findAll());
+    public ResponseEntity<List<AdminUserDto>> getAllUsers() {
+        List<AdminUserDto> users = userRepo.findAll().stream()
+                .map(user -> new AdminUserDto(user.getId(), user.getEmail(), user.getRole()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
     }
 
     @PutMapping("/promote/{id}")
@@ -104,7 +108,7 @@ public class AdminController {
             return ResponseEntity.ok("✅ User deleted successfully.");
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body("❌ Error deleting user: " + e.getMessage());
+                    .body("❌ Error deleting user. Please contact support if the problem persists.");
         }
     }
 
@@ -148,5 +152,41 @@ public class AdminController {
         }
         String token = authHeader.replace("Bearer ", "");
         return jwtUtil.extractEmail(token);
+    }
+
+    public static class AdminUserDto {
+        private Long id;
+        private String email;
+        private String role;
+
+        public AdminUserDto(Long id, String email, String role) {
+            this.id = id;
+            this.email = email;
+            this.role = role;
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+
+        public String getRole() {
+            return role;
+        }
+
+        public void setRole(String role) {
+            this.role = role;
+        }
     }
 }
