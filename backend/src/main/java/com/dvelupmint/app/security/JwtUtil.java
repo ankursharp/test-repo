@@ -18,6 +18,12 @@ public class JwtUtil {
     @Value("${jwt.expiration-ms:900000}")
     private long expirationMs;
 
+    @Value("${jwt.issuer:dev-app}")
+    private String issuer;
+
+    @Value("${jwt.audience:dev-users}")
+    private String audience;
+
     private Key getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
@@ -27,6 +33,8 @@ public class JwtUtil {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("role", role)
+                .setIssuer(issuer)
+                .setAudience(audience)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -37,6 +45,8 @@ public class JwtUtil {
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(username)
+                .setIssuer(issuer)
+                .setAudience(audience)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -66,10 +76,13 @@ public class JwtUtil {
     public boolean validateToken(String token) {
         // Checks if the token is valid and not expired
         try {
-            Jwts.parserBuilder()
+            Claims claims = Jwts.parserBuilder()
+                    .requireIssuer(issuer)
+                    .requireAudience(audience)
                     .setSigningKey(getSigningKey())
                     .build()
-                    .parseClaimsJws(token);
+                    .parseClaimsJws(token)
+                    .getBody();
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;

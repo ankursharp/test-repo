@@ -50,6 +50,7 @@
     "@tootallnate/once": "3.0.1",
     "webpack": "5.104.0",
     "@babel/plugin-transform-modules-systemjs": "7.29.4",
-    "ajv": "8.18.0"
+    "ajv": "8.18.0",
+    "form-data": "3.0.4"
   }
 }
