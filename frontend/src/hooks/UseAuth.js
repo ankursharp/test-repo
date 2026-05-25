@@ -9,17 +9,18 @@ export function useAuth() {
   setAuthState = setAuth;
 
   useEffect(() => {
-    const token = localStorage.getItem('jwtToken');
-    if (token) {
+    const tokenMeta = sessionStorage.getItem('jwtMeta');
+    if (tokenMeta) {
       try {
-        const decoded = jwtDecode(token);
+        const parsed = JSON.parse(tokenMeta);
+        const decoded = jwtDecode(parsed.token);
         setAuth({
-          token,
+          token: parsed.token,
           email: decoded.sub,
           role: decoded.role
         });
       } catch (err) {
-        console.error('Invalid token', err);
+        console.error('Invalid token metadata', err);
       }
     }
     setLoading(false);
@@ -30,6 +31,9 @@ export function useAuth() {
 
 export function updateAuthStateFromToken(token) {
   const decoded = jwtDecode(token);
+  if (typeof window !== 'undefined') {
+    sessionStorage.setItem('jwtMeta', JSON.stringify({ token }));
+  }
   setAuthState({
     token,
     email: decoded.sub,
