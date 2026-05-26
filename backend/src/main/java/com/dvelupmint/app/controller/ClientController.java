@@ -102,6 +102,15 @@ public class ClientController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/batch")
     public ResponseEntity<?> addClients(@Valid @RequestBody List<Client> clients) {
+        final int MAX_BATCH_SIZE = 500;
+        if (clients == null || clients.isEmpty()) {
+            return ResponseEntity.badRequest().body("Client list must not be empty");
+        }
+        if (clients.size() > MAX_BATCH_SIZE) {
+            return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                    .body("Batch size exceeds maximum of " + MAX_BATCH_SIZE);
+        }
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");
